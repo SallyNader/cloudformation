@@ -1,0 +1,151 @@
+Parameters:
+    EnvironmentName:
+        Description: Environment name 
+        Type: String
+    MyIp:
+        Description: My IP to ssh to bastion host 
+        Type: String	
+    KeyName:
+        Description: Key name that we will use to ssh to instances 
+        Type: String	
+    ImageId:
+        Description: Image Id that will be used in instances
+        Type: String	
+
+Resources:
+    WebSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Web Security Group 
+            GroupName: Web Security Group
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 
+                      Fn::ImportValue: !Sub ${EnvironmentName}-VpcCIDR
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp:
+                      Fn::ImportValue: !Sub ${EnvironmentName}-VpcCIDR
+            SecurityGroupEgress:
+                - IpProtocol: tcp
+                  FromPort: 0
+                  ToPort: 65535
+                  CidrIp: 0.0.0.0/0
+            VpcId:
+                Fn::ImportValue: !Sub ${EnvironmentName}-VPCID
+
+    WeblaunchConfig:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+            LaunchConfigurationName: Web launch Config
+            ImageId: !Ref ImageId
+            InstanceType: t2.medium
+            IamInstanceProfile:
+                Fn::ImportValue: EC2InstanceProfile
+            KeyName: !Ref KeyName
+            SecurityGroups:
+                - Ref: WebSecurityGroup
+            UserData:
+                Fn::Base64: !Sub |
+                  #!/bin/bash
+                  sudo apt-get update -y
+                  sudo apt-get install apache2 -y
+                  sudo systemctl start apache2.service
+            BlockDeviceMappings:
+                - DeviceName: /dev/sda1 
+                  Ebs:
+                      VolumeSize: '10'
+        
+    WebAutoScalingGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            VPCZoneIdentifier:
+                - Fn::ImportValue: 
+                    !Sub "${EnvironmentName}-PRIV-NETS"
+            LaunchConfigurationName:
+                Ref: WeblaunchConfig
+            MinSize: '2'
+            DesiredCapacity: '2'
+            MaxSize: '4'
+            TargetGroupARNs:
+                - Ref: WebTargetGroup
+
+    ELBSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription:  ELB sg 
+            GroupName:  ELBSecurityGroup 
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 80
+                  ToPort: 80
+                  CidrIp: 0.0.0.0/0
+            SecurityGroupEgress:
+                - IpProtocol: tcp
+                  FromPort: 0
+                  ToPort: 65535
+                  CidrIp: 0.0.0.0/0
+            VpcId:
+                Fn::ImportValue:
+                    !Sub  ${EnvironmentName}-VPCID 
+  
+    WebELB:
+        Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+        Properties:
+            Name:  WebELB 
+            SecurityGroups:
+                - Ref: ELBSecurityGroup
+            Subnets:
+                - Fn::ImportValue: !Sub  ${EnvironmentName}-PUB1-SN 
+                - Fn::ImportValue: !Sub  ${EnvironmentName}-PUB2-SN 
+
+    ELBListener:
+        Type: AWS::ElasticLoadBalancingV2::Listener
+        Properties:
+            DefaultActions: 
+                - Type: forward
+                  TargetGroupArn: !Ref WebTargetGroup
+            LoadBalancerArn: 
+                Ref: WebELB
+            Port: 80
+            Protocol: HTTP
+
+    ELBListenerRule:
+        Type: AWS::ElasticLoadBalancingV2::ListenerRule
+        Properties:
+            Actions: 
+                - Type: forward
+                  TargetGroupArn: !Ref WebTargetGroup
+            Conditions: 
+                - Field: path-pattern
+                  Values: [/]
+            ListenerArn: !Ref ELBListener
+            Priority: 1 
+
+    WebTargetGroup:
+        Type: AWS::ElasticLoadBalancingV2::TargetGroup
+        Properties:
+            HealthCheckEnabled: true
+            HealthCheckIntervalSeconds: 10
+            HealthCheckPath: /
+            HealthCheckPort: 80
+            HealthCheckProtocol: HTTP
+            HealthCheckTimeoutSeconds: 8
+            HealthyThresholdCount: 3
+            Port: 80
+            Protocol: HTTP
+            UnhealthyThresholdCount: 3
+            TargetType: instance
+            VpcId: 
+                Fn::ImportValue:
+                    Fn::Sub:  ${EnvironmentName}-VPCID 
+
+Outputs:
+    ELBDNS:
+        Description: Output ELB DNS url
+        Value: !Sub http://${WebELB.DNSName}
+        Export:
+            Name: ELB-DNS-URL		  

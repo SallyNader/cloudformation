@@ -1,0 +1,18 @@
+[
+	{
+		"ParameterKey": "EnvironmentName",
+		"ParameterValue": "IAC-project"
+	},
+	{
+		"ParameterKey": "MyIp",
+		"ParameterValue": "10.0.3.0/24"
+	},
+	{
+		"ParameterKey": "KeyName",
+		"ParameterValue": "test"
+	},
+	{
+		"ParameterKey": "ImageId",
+		"ParameterValue": "ami-0729e439b6769d6ab"
+	}
+]

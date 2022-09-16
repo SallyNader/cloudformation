@@ -1,0 +1,37 @@
+Resources:
+# Create s3 role to assign it to ec2 instances
+    S3Role:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: Allow
+                    Principal:
+                        Service:
+                            - s3.amazonaws.com
+                    Action:
+                        - 'sts:AssumeRole'
+            Path: /
+            Policies:
+                - PolicyName: S3Policy
+                  PolicyDocument:
+                        Version: "2012-10-17"
+                        Statement:
+                          - Effect: Allow
+                            Action: 's3:*'
+                            Resource: '*'
+
+    InstanceProfile:
+        Type: 'AWS::IAM::InstanceProfile'
+        Properties:
+            Path: /
+            Roles:
+                - !Ref S3Role	
+
+Outputs:
+    EC2InstanceProfile:
+        Description: Instance profile that will be assigned to ec2 instances
+        Value: !Ref InstanceProfile
+        Export:
+            Name: EC2InstanceProfile									

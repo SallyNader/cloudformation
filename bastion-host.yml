@@ -1,0 +1,66 @@
+Parameters:
+    EnvironmentName:
+        Description: Environment name 
+        Type: String
+    MyIp:
+        Description: My IP to ssh to bastion host 
+        Type: String	
+    KeyName:
+        Description: Key name that we will use to ssh to instances 
+        Type: String	
+    ImageId:
+        Description: Image Id that will be used in instances
+        Type: String
+
+Resources:
+    BastionHostSecurityGroup:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Bastion Host Security Group 
+            GroupName: Bastion Host SG
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: 22
+                  ToPort: 22
+                  CidrIp: !Ref MyIp
+            SecurityGroupEgress:
+                - IpProtocol: tcp
+                  FromPort: 0
+                  ToPort: 65535
+                  CidrIp: 0.0.0.0/0
+            VpcId:
+                Fn::ImportValue: !Sub ${EnvironmentName}-VPCID
+
+
+    BastionHostlaunchConfig:
+        Type: AWS::AutoScaling::LaunchConfiguration
+        Properties:
+            LaunchConfigurationName: Bastion Host launch Config
+            ImageId: !Ref ImageId
+            InstanceType: t2.micro
+            KeyName: !Ref KeyName
+            IamInstanceProfile:
+                Fn::ImportValue: EC2InstanceProfile
+            SecurityGroups: 
+                - !Ref BastionHostSecurityGroup
+            BlockDeviceMappings:
+                - DeviceName: /dev/sda1
+                  Ebs:
+                        VolumeSize: '10'
+
+    BastionHostAutoScalingGroup:
+        Type: AWS::AutoScaling::AutoScalingGroup
+        Properties:
+            VPCZoneIdentifier:
+                - Fn::ImportValue: 
+                    !Sub  ${EnvironmentName}-PUB-NETS 
+            LaunchConfigurationName: !Ref BastionHostlaunchConfig
+            MaxSize: 4
+            DesiredCapacity: 2
+            MinSize: 2
+            Tags:
+                - Key: Name
+                  Value: Bastion AutoScaling Group
+                  PropagateAtLaunch: true
+
+    
