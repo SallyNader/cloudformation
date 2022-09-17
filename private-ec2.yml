@@ -5,9 +5,6 @@ Parameters:
     MyIp:
         Description: My IP to ssh to bastion host 
         Type: String	
-    KeyName:
-        Description: Key name that we will use to ssh to instances 
-        Type: String	
     ImageId:
         Description: Image Id that will be used in instances
         Type: String	
@@ -45,7 +42,6 @@ Resources:
             InstanceType: t2.medium
             IamInstanceProfile:
                 Fn::ImportValue: EC2InstanceProfile
-            KeyName: !Ref KeyName
             SecurityGroups:
                 - Ref: WebSecurityGroup
             UserData:
@@ -54,6 +50,8 @@ Resources:
                   sudo apt-get update -y
                   sudo apt-get install apache2 -y
                   sudo systemctl start apache2.service
+                  sudo chmod 777 /var/www/html -R
+                  sudo echo "it works! Udagram, Udacity" > /var/www/html/index.html
             BlockDeviceMappings:
                 - DeviceName: /dev/sda1 
                   Ebs:

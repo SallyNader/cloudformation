@@ -1,5 +1,7 @@
 ![Blank diagram (2)](https://user-images.githubusercontent.com/14328150/190657024-463dd781-5748-43f2-9063-fcf320ffc3db.jpeg)
 
+## ELB URL: http://webelb-1400881990.us-east-1.elb.amazonaws.com/ <br/>
+
 ## Project Description:
 This project aims to create multiple ec2 instances on multiple zones to achive high availability, it deploys apache servers on private subnets and you can access your website through ELB url, you can also ssh to the private servers using basion hosts that is created on public subnets, also these instances have IAM role to perform actions on s3. <br/>
 
