@@ -2,7 +2,13 @@
 
 
 ## Project Description:
-This project aims to create multiple ec2 instances on multiple zones to achive high availability, it deploys apache servers on private subnets and you can access your website through ELB url, you can also ssh to the private servers using basion hosts that is created on public subnets, also these instances have IAM role to perform actions on s3. <br/>
+This project aims to:<br/>
+•	Create VPC with public and private subnets, NAT gateway and internet gateway.<br/>
+•	Create auto scaling group to deploy multiple bastion hosts on multiple availability zones.<br/>
+•	Create auto scaling group to deploy private EC2 instances on multiple availability zones.<br/>
+•	Create ELB to access web application in the private EC2 instances.<br/>
+•	Create IAM role to perform actions on s3 and attach it to EC2 instances.
+ <br/>
 
 ## Prerequisites:
 1- You should have AWS account.<br/>  
